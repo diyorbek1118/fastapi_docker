@@ -1,0 +1,25 @@
+services:
+  web:
+    build: .
+    container_name: fastapi_app
+    ports:
+      - "8002:8000"
+    depends_on:
+      - db
+    volumes:
+      - ./app:/app  # local papkani containerga ulanadi
+  db:
+    image: mysql:8.0
+    container_name: fastapi_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: fastapi_db
+    ports:
+      - "3320:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
