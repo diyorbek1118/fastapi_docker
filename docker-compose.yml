@@ -7,7 +7,13 @@ services:
     depends_on:
       - db
     volumes:
-      - ./app:/app  # local papkani containerga ulanadi
+      - ./app:/app
+    env_file:
+      - .env          
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=True
+  
   db:
     image: mysql:8.0
     container_name: fastapi_db
