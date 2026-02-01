@@ -6,7 +6,7 @@ from models.post import Post
 from api.v1.routes import post
 
 # Database tables yaratish
-Base.metadata.create_all(bind=engine)
+#Base.metadata.create_all(bind=engine)
 
 # FastAPI app yaratish
 app = FastAPI(
