@@ -17,7 +17,10 @@ from core.config import settings
 
 # Import Base and all models
 from core.database import Base
-from models.post import Post  # ← BARCHA modellarni import qiling!
+from models.post import Post
+from models.user import User
+
+  # ← BARCHA modellarni import qiling!
 # from models.user import User  # ← Keyingi modellar
 # from models.comment import Comment
 

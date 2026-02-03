@@ -8,6 +8,7 @@ services:
       - db
     volumes:
       - ./app:/app
+      - ./logs:/app/logs  # ← Bu!
     env_file:
       - .env          
     environment:
