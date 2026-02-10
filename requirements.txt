@@ -10,3 +10,5 @@ alembic
 bcrypt
 python-jose[cryptography]
 email-validator
+slowapi
+prometheus-fastapi-instrumentator
