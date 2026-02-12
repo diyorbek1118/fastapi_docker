@@ -4,6 +4,9 @@ from typing import List
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from core.redis_client import redis_client
+import json
+
 from core.dependencies import get_db, get_authenticated_user
 from schemas.post import PostCreate, PostResponse
 from services import post_service
@@ -18,33 +21,37 @@ router = APIRouter(prefix="/posts", tags=["Posts"])
 # ========================================
 # PUBLIC ENDPOINTS (Token kerak emas)
 # ========================================
-@router.get(
-    "/",
-    response_model=List[PostResponse],
-    summary="Get all posts"
-)
+@router.get("/")
 def get_posts(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
-    """Get all posts - No limit"""
+    """Get all posts with cache"""
+    
+    # Cache key
+    cache_key = f"posts:{skip}:{limit}"
+    
+    # Try cache
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
+    
+    # Get from DB
     if limit > 100:
         limit = 100
-    return post_service.get_posts(db=db, skip=skip, limit=limit)
-
-
-@router.get(
-    "/{post_id}",
-    response_model=PostResponse,
-    summary="Get post by ID"
-)
-def get_post(
-    post_id: int,
-    db: Session = Depends(get_db)
-):
-    """Get a post by ID - No limit"""
-    return post_service.get_post(db=db, post_id=post_id)
+    posts = post_service.get_posts(db=db, skip=skip, limit=limit)
+    
+    # Convert to dict
+    posts_data = [
+        {"id": p.id, "title": p.title, "content": p.content}
+        for p in posts
+    ]
+    
+    # Save to cache (60s)
+    redis_client.set(cache_key, json.dumps(posts_data), ex=60)
+    
+    return posts_data
 
 
 # ========================================

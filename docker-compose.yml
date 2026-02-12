@@ -49,6 +49,11 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     depends_on:
       - prometheus
+  redis:  # ← YANGI!
+    image: redis:7-alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
 
 volumes:
   mysql_data:
