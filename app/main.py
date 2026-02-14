@@ -18,6 +18,14 @@ from core.error_handlers import (
 from api.v1.routes import post as post_v1, auth
 from api.v2.routes import post as post_v2
 
+# ========================================
+# ⚡ MIDDLEWARE IMPORTS (YANGI!)
+# ========================================
+from middleware import (
+    RequestIDMiddleware,
+    TimingMiddleware,
+    LoggingMiddleware
+)
 
 import logging
 
@@ -62,7 +70,20 @@ app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
 
 # ========================================
-# CORS
+# ⚡ MIDDLEWARE (YANGI!)
+# Tartib MUHIM: birinchi qo'shilgan oxirgi ishlaydi
+# ========================================
+# 1. Request ID - eng birinchi bo'lishi kerak
+app.add_middleware(RequestIDMiddleware)
+
+# 2. Timing - request ID dan keyin
+app.add_middleware(TimingMiddleware)
+
+# 3. Logging - oxirida (request ID va timing dan foydalanadi)
+app.add_middleware(LoggingMiddleware)
+
+# ========================================
+# CORS (MIDDLEWARE hisoblanadi)
 # ========================================
 app.add_middleware(
     CORSMiddleware,
@@ -113,6 +134,10 @@ async def startup_event():
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"Debug mode: {settings.DEBUG}")
+    logger.info("⚡ Middleware enabled:")
+    logger.info("  - RequestIDMiddleware ✅")
+    logger.info("  - TimingMiddleware ✅")
+    logger.info("  - LoggingMiddleware ✅")
     logger.info("=" * 60)
 
 # ========================================

@@ -1,5 +1,10 @@
-from sqlalchemy.orm import Session
+"""
+Post Service - ASYNC version
+"""
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+
 from models.post import Post
 from schemas.post import PostCreate
 from core.exceptions import (
@@ -11,12 +16,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def create_post(db: Session, post: PostCreate) -> Post:
+# ========================================
+# CREATE POST
+# ========================================
+async def create_post(db: AsyncSession, post: PostCreate) -> Post:
     """
-    Create a new post.
+    Create a new post (ASYNC).
     
     Args:
-        db: Database session
+        db: Async database session
         post: Post data
         
     Returns:
@@ -26,31 +34,41 @@ def create_post(db: Session, post: PostCreate) -> Post:
         DatabaseException: If database error occurs
     """
     try:
+        # 1. Create post instance
         db_post = Post(**post.model_dump())
+        
+        # 2. Add to session
         db.add(db_post)
-        db.commit()
-        db.refresh(db_post)
+        
+        # 3. Commit (ASYNC!)
+        await db.commit()
+        
+        # 4. Refresh to get ID (ASYNC!)
+        await db.refresh(db_post)
         
         logger.info(f"Post created successfully: ID={db_post.id}")
         return db_post
         
     except IntegrityError as e:
-        db.rollback()
+        await db.rollback()
         logger.error(f"Integrity error creating post: {str(e)}")
         raise DatabaseException("Could not create post: Integrity constraint violated")
         
     except SQLAlchemyError as e:
-        db.rollback()
+        await db.rollback()
         logger.error(f"Database error creating post: {str(e)}")
         raise DatabaseException("Database error occurred while creating post")
 
 
-def get_post(db: Session, post_id: int) -> Post:
+# ========================================
+# GET POST BY ID
+# ========================================
+async def get_post(db: AsyncSession, post_id: int) -> Post:
     """
-    Get post by ID.
+    Get post by ID (ASYNC).
     
     Args:
-        db: Database session
+        db: Async database session
         post_id: Post ID
         
     Returns:
@@ -59,7 +77,12 @@ def get_post(db: Session, post_id: int) -> Post:
     Raises:
         PostNotFoundException: If post not found
     """
-    db_post = db.query(Post).filter(Post.id == post_id).first()
+    # Modern SQLAlchemy 2.0 syntax
+    result = await db.execute(
+        select(Post).where(Post.id == post_id)
+    )
+    
+    db_post = result.scalar_one_or_none()
     
     if db_post is None:
         logger.warning(f"Post not found: ID={post_id}")
@@ -68,12 +91,15 @@ def get_post(db: Session, post_id: int) -> Post:
     return db_post
 
 
-def get_posts(db: Session, skip: int = 0, limit: int = 100):
+# ========================================
+# GET ALL POSTS
+# ========================================
+async def get_posts(db: AsyncSession, skip: int = 0, limit: int = 100):
     """
-    Get all posts with pagination.
+    Get all posts with pagination (ASYNC).
     
     Args:
-        db: Database session
+        db: Async database session
         skip: Number of records to skip
         limit: Maximum number of records to return
         
@@ -81,18 +107,32 @@ def get_posts(db: Session, skip: int = 0, limit: int = 100):
         List of posts
     """
     try:
-        return db.query(Post).offset(skip).limit(limit).all()
+        # Modern syntax with select()
+        result = await db.execute(
+            select(Post)
+            .offset(skip)
+            .limit(limit)
+        )
+        
+        # Get all results
+        posts = result.scalars().all()
+        
+        return posts
+        
     except SQLAlchemyError as e:
         logger.error(f"Database error fetching posts: {str(e)}")
         raise DatabaseException("Could not fetch posts")
 
 
-def delete_post(db: Session, post_id: int) -> bool:
+# ========================================
+# DELETE POST
+# ========================================
+async def delete_post(db: AsyncSession, post_id: int) -> bool:
     """
-    Delete post by ID.
+    Delete post by ID (ASYNC).
     
     Args:
-        db: Database session
+        db: Async database session
         post_id: Post ID
         
     Returns:
@@ -102,15 +142,39 @@ def delete_post(db: Session, post_id: int) -> bool:
         PostNotFoundException: If post not found
         DatabaseException: If database error occurs
     """
-    db_post = get_post(db, post_id)  # Raises PostNotFoundException if not found
+    # Get post (raises exception if not found)
+    db_post = await get_post(db, post_id)
     
     try:
-        db.delete(db_post)
-        db.commit()
+        # Delete
+        await db.delete(db_post)
+        
+        # Commit (ASYNC!)
+        await db.commit()
+        
         logger.info(f"Post deleted successfully: ID={post_id}")
         return True
         
     except SQLAlchemyError as e:
-        db.rollback()
+        await db.rollback()
         logger.error(f"Database error deleting post: {str(e)}")
         raise DatabaseException("Could not delete post")
+
+
+# ========================================
+# COMPARISON: OLD vs NEW
+# ========================================
+"""
+OLD (Sync):
+    posts = db.query(Post).all()
+
+NEW (Async):
+    result = await db.execute(select(Post))
+    posts = result.scalars().all()
+
+Key differences:
+1. await keyword
+2. execute() instead of query()
+3. select() instead of query builder
+4. scalars().all() to get results
+"""

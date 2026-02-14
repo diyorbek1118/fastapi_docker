@@ -7,6 +7,16 @@ from core.database import SessionLocal
 from models.user import User
 from services.auth_service import get_current_user
 
+# ========================================
+# ASYNC IMPORTS (YANGI!)
+# ========================================
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.database import SessionLocal, AsyncSessionLocal
+from models.user import User
+from services.auth_service import get_current_user
+
+
 security = HTTPBearer()
 
 
@@ -19,6 +29,25 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+# ========================================
+# ASYNC DATABASE (YANGI! - Posts uchun)
+# ========================================
+async def get_async_db():
+    """
+    Async database session.
+    
+    Usage:
+        @router.get("/posts/")
+        async def get_posts(db: AsyncSession = Depends(get_async_db)):
+            ...
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
 
 
 # ========================================

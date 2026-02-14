@@ -1,6 +1,8 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
+sqlalchemy[asyncio]
+aiomysql
 pydantic
 pydantic-settings 
 python-dotenv 
